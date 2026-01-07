@@ -34,6 +34,27 @@ AI coding agents are increasingly writing the world's code and human engineers n
 
 You can watch a video overview [here](https://youtu.be/TFT3KnZOOAk).
 
+## Key Features
+
+- **Parallel Agent Orchestration**: Run multiple coding agents (Claude Code, Gemini CLI, etc.) simultaneously. While agents work in the background, you can focus on planning, reviewing, or other tasks.
+- **Git Worktree Isolation**: Each task runs in its own isolated [git worktree](https://git-scm.com/docs/git-worktree). This ensures agents don't interfere with each other or your main working directory, keeping your workspace clean.
+- **Project-Specific Configuration**: Customize how agents interact with your project:
+  - **Setup Scripts**: Automate dependency installation (e.g., `npm install`, `cargo build`) before an agent starts.
+  - **Cleanup Scripts**: Run formatters or linters after an agent finishes.
+  - **File Copying**: Automatically copy necessary files (like `.env`) to the agent's environment.
+- **Integrated Review Workflow**: Quickly review code changes, run dev servers for specific tasks, and resolve conflicts before merging.
+- **Remote Development**: First-class support for remote execution via SSH, allowing you to run agents on a powerful server while using your local editor.
+
+## How It Works
+
+Vibe Kanban acts as a managing layer between you and your AI coding agents. When you assign a task to an agent:
+
+1. **Isolation**: A temporary git worktree is created for the task, ensuring a clean state.
+2. **Preparation**: Specified configuration files are copied, and setup scripts run to prepare the environment.
+3. **Execution**: The agent performs the task in this isolated environment.
+4. **Review**: You can inspect the changes, run a dev server within that worktree, and modify the code if needed.
+5. **Merge**: Once satisfied, the changes are merged back into your main branch.
+
 ## Installation
 
 Make sure you have authenticated with your favourite coding agent. A full list of supported coding agents can be found in the [docs](https://vibekanban.com/docs). Then in your terminal run:

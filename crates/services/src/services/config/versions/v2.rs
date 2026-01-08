@@ -19,6 +19,7 @@ impl From<v1::EditorConfig> for EditorConfig {
             None,
             None,
             None,
+            None,
         )
     }
 }

@@ -37,6 +37,8 @@ pub struct EditorConfig {
     remote_ssh_host: Option<String>,
     #[serde(default)]
     remote_ssh_user: Option<String>,
+    #[serde(default)]
+    open_vscode_server_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, EnumString, EnumIter)]
@@ -50,6 +52,7 @@ pub enum EditorType {
     IntelliJ,
     Zed,
     Xcode,
+    OpenVsCodeServer,
     Custom,
 }
 
@@ -60,6 +63,7 @@ impl Default for EditorConfig {
             custom_command: None,
             remote_ssh_host: None,
             remote_ssh_user: None,
+            open_vscode_server_url: None,
         }
     }
 }
@@ -71,12 +75,14 @@ impl EditorConfig {
         custom_command: Option<String>,
         remote_ssh_host: Option<String>,
         remote_ssh_user: Option<String>,
+        open_vscode_server_url: Option<String>,
     ) -> Self {
         Self {
             editor_type,
             custom_command,
             remote_ssh_host,
             remote_ssh_user,
+            open_vscode_server_url,
         }
     }
 
@@ -88,6 +94,7 @@ impl EditorConfig {
             EditorType::IntelliJ => "idea",
             EditorType::Zed => "zed",
             EditorType::Xcode => "xed",
+            EditorType::OpenVsCodeServer => "true",
             EditorType::Custom => {
                 // Custom editor - use user-provided command or fallback to VSCode
                 self.custom_command.as_deref().unwrap_or("code")
@@ -125,6 +132,9 @@ impl EditorConfig {
     /// Check if the editor is available on the system.
     /// Uses the same command resolution logic as spawn_local().
     pub async fn check_availability(&self) -> bool {
+        if let EditorType::OpenVsCodeServer = self.editor_type {
+            return self.open_vscode_server_url.is_some();
+        }
         self.resolve_command().await.is_ok()
     }
 
@@ -137,6 +147,13 @@ impl EditorConfig {
     }
 
     fn remote_url(&self, path: &Path) -> Option<String> {
+        if let EditorType::OpenVsCodeServer = self.editor_type {
+            let base_url = self.open_vscode_server_url.as_ref()?;
+            let path = path.to_string_lossy();
+            let base_url = base_url.trim_end_matches('/');
+            return Some(format!("{base_url}/?folder={path}"));
+        }
+
         let remote_host = self.remote_ssh_host.as_ref()?;
         let scheme = match self.editor_type {
             EditorType::VsCode => "vscode",
@@ -179,6 +196,7 @@ impl EditorConfig {
                 custom_command: self.custom_command.clone(),
                 remote_ssh_host: self.remote_ssh_host.clone(),
                 remote_ssh_user: self.remote_ssh_user.clone(),
+                open_vscode_server_url: self.open_vscode_server_url.clone(),
             }
         } else {
             self.clone()

@@ -31,6 +31,8 @@ export function getIdeName(editorType: EditorType | undefined | null): string {
       return 'Zed';
     case EditorType.XCODE:
       return 'Xcode';
+    case EditorType.OPEN_VS_CODE_SERVER:
+      return 'OpenVSCode Server';
     case EditorType.CUSTOM:
       return 'IDE';
   }
@@ -51,6 +53,7 @@ export function IdeIcon({ editorType, className = 'h-4 w-4' }: IdeIconProps) {
 
   switch (editorType) {
     case EditorType.VS_CODE:
+    case EditorType.OPEN_VS_CODE_SERVER:
       ideIconPath = isDark ? '/ide/vscode-dark.svg' : '/ide/vscode-light.svg';
       break;
     case EditorType.CURSOR:

@@ -18,6 +18,8 @@ impl From<v1::EditorConfig> for EditorConfig {
             old.custom_command,
             None,
             None,
+            None,
+            None,
         )
     }
 }

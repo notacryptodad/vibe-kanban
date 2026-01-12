@@ -290,17 +290,6 @@ export function ProjectTasks() {
   const mode: LayoutMode =
     rawMode === 'preview' || rawMode === 'diffs' ? rawMode : null;
 
-  // TODO: Remove this redirect after v0.1.0 (legacy URL support for bookmarked links)
-  // Migrates old `view=logs` to `view=diffs`
-  useEffect(() => {
-    const view = searchParams.get('view');
-    if (view === 'logs') {
-      const params = new URLSearchParams(searchParams);
-      params.set('view', 'diffs');
-      setSearchParams(params, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
   const setMode = useCallback(
     (newMode: LayoutMode) => {
       const params = new URLSearchParams(searchParams);

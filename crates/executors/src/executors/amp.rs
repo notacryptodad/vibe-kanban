@@ -52,7 +52,23 @@ impl StandardCodingAgentExecutor for Amp {
         env: &ExecutionEnv,
     ) -> Result<SpawnedChild, ExecutorError> {
         let command_parts = self.build_command_builder().build_initial()?;
-        let (executable_path, args) = command_parts.into_resolved().await?;
+        let (executable_path, args) = if let Some(image) = &self.cmd.docker_image {
+            let settings = crate::docker::DockerSettings {
+                image: image.clone(),
+                extra_mounts: crate::docker::get_standard_mounts(),
+                network_mode: None,
+            };
+            let (prog, docker_args) = crate::docker::wrap_in_docker(
+                &command_parts.program,
+                &command_parts.args,
+                &settings,
+                current_dir,
+                env,
+            );
+            (std::path::PathBuf::from(prog), docker_args)
+        } else {
+            command_parts.into_resolved().await?
+        };
 
         let combined_prompt = self.append_prompt.combine_prompt(prompt);
 
@@ -87,14 +103,38 @@ impl StandardCodingAgentExecutor for Amp {
         session_id: &str,
         env: &ExecutionEnv,
     ) -> Result<SpawnedChild, ExecutorError> {
-        // 1) Fork the thread synchronously to obtain new thread id
         let builder = self.build_command_builder();
+        // Prepare Docker settings if needed
+        let docker_settings = if let Some(image) = &self.cmd.docker_image {
+            Some(crate::docker::DockerSettings {
+                image: image.clone(),
+                extra_mounts: crate::docker::get_standard_mounts(),
+                network_mode: None,
+            })
+        } else {
+            None
+        };
+
+        // 1) Fork the thread synchronously to obtain new thread id
         let fork_line = builder.build_follow_up(&[
             "threads".to_string(),
             "fork".to_string(),
             session_id.to_string(),
         ])?;
-        let (fork_program, fork_args) = fork_line.into_resolved().await?;
+
+        let (fork_program, fork_args) = if let Some(settings) = &docker_settings {
+            let (prog, args) = crate::docker::wrap_in_docker(
+                &fork_line.program,
+                &fork_line.args,
+                settings,
+                current_dir,
+                env,
+            );
+            (std::path::PathBuf::from(prog), args)
+        } else {
+            fork_line.into_resolved().await?
+        };
+
         let fork_output = Command::new(fork_program)
             .kill_on_drop(true)
             .stdout(Stdio::piped())
@@ -125,7 +165,19 @@ impl StandardCodingAgentExecutor for Amp {
             "continue".to_string(),
             new_thread_id.clone(),
         ])?;
-        let (continue_program, continue_args) = continue_line.into_resolved().await?;
+
+        let (continue_program, continue_args) = if let Some(settings) = &docker_settings {
+            let (prog, args) = crate::docker::wrap_in_docker(
+                &continue_line.program,
+                &continue_line.args,
+                settings,
+                current_dir,
+                env,
+            );
+            (std::path::PathBuf::from(prog), args)
+        } else {
+            continue_line.into_resolved().await?
+        };
 
         let combined_prompt = self.append_prompt.combine_prompt(prompt);
 

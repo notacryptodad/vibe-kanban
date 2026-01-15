@@ -238,7 +238,26 @@ impl ClaudeCode {
         command_parts: CommandParts,
         env: &ExecutionEnv,
     ) -> Result<SpawnedChild, ExecutorError> {
-        let (program_path, args) = command_parts.into_resolved().await?;
+        let (program_path, args) = if let Some(image) = &self.cmd.docker_image {
+            let settings = crate::docker::DockerSettings {
+                image: image.clone(),
+                extra_mounts: crate::docker::get_standard_mounts(),
+                network_mode: None,
+            };
+
+            let (prog, docker_args) = crate::docker::wrap_in_docker(
+                &command_parts.program,
+                &command_parts.args,
+                &settings,
+                current_dir,
+                env,
+            );
+
+            (std::path::PathBuf::from(prog), docker_args)
+        } else {
+            command_parts.into_resolved().await?
+        };
+
         let combined_prompt = self.append_prompt.combine_prompt(prompt);
 
         let mut command = Command::new(program_path);
@@ -2018,6 +2037,7 @@ mod tests {
                 base_command_override: None,
                 additional_params: None,
                 env: None,
+                docker_image: None,
             },
             approvals_service: None,
             disable_api_key: None,

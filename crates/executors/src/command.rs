@@ -20,8 +20,8 @@ pub enum CommandBuildError {
 
 #[derive(Debug, Clone)]
 pub struct CommandParts {
-    program: String,
-    args: Vec<String>,
+    pub program: String,
+    pub args: Vec<String>,
 }
 
 impl CommandParts {
@@ -58,6 +58,12 @@ pub struct CmdOverrides {
     )]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub env: Option<HashMap<String, String>>,
+    #[schemars(
+        title = "Docker Image",
+        description = "Docker image to use for execution (e.g., 'node:18'). If set, the executor will run inside a Docker container."
+    )]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub docker_image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS, JsonSchema)]
